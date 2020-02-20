@@ -54,15 +54,21 @@ extern "C" {
 /* For evkeyvalq */
 #include <event2/keyvalq_struct.h>
 
+// 事件处理器从属于注册事件队列
 #define EVLIST_TIMEOUT	    0x01
+// 从属于注册事件队列
 #define EVLIST_INSERTED	    0x02
+// 没有使用?
 #define EVLIST_SIGNAL	    0x04
+// 从属于活动事件队列
 #define EVLIST_ACTIVE	    0x08
+// 内部使用
 #define EVLIST_INTERNAL	    0x10
 #define EVLIST_ACTIVE_LATER 0x20
 #define EVLIST_FINALIZING   0x40
+// 事件处理器已经被初始化
 #define EVLIST_INIT	    0x80
-
+// 全标志
 #define EVLIST_ALL          0xff
 
 /* Fix so that people don't have to run with <sys/queue.h> */
@@ -123,24 +129,31 @@ struct event_base;
 struct event {
 	struct event_callback ev_evcallback;
 
-	/* for managing timeouts */
+	// 仅用于定时事件
 	union {
+		// 队列--指出在通用定时器中的位置
 		TAILQ_ENTRY(event) ev_next_with_common_timeout;
+		// 时间堆--指出了在时间堆中的位置
 		int min_heap_idx;
 	} ev_timeout_pos;
+
+	// 信号值 或者 文件描述符
 	evutil_socket_t ev_fd;
 
+	// 事件处理器从属的 event_base
 	struct event_base *ev_base;
 
 	union {
 		/* used for io events */
 		struct {
+			// 通过这个成员 将具有相同文件描述符的IO事件处理器串联起来
 			LIST_ENTRY (event) ev_io_next;
 			struct timeval ev_timeout;
 		} ev_io;
 
 		/* used by signal events */
 		struct {
+			// 相同信号的串联起来
 			LIST_ENTRY (event) ev_signal_next;
 			short ev_ncalls;
 			/* Allows deletes in callback */
@@ -148,8 +161,11 @@ struct event {
 		} ev_signal;
 	} ev_;
 
+	// 事件类型, 可以通过位处理设置非互斥事件
 	short ev_events;
-	short ev_res;		/* result passed to event callback */
+	// 当前激活事件的类型, 说明被激活的原因
+	short ev_res;
+	// 定时器的超时时间
 	struct timeval ev_timeout;
 };
 

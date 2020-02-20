@@ -499,15 +499,14 @@ int event_config_avoid_method(struct event_config *cfg, const char *method);
    event_base_get_features() to see which features are available.
 */
 enum event_method_feature {
-    /** Require an event method that allows edge-triggered events with EV_ET. */
+    // 支持边缘触发事件
     EV_FEATURE_ET = 0x01,
     /** Require an event method where having one event triggered among
      * many is [approximately] an O(1) operation. This excludes (for
      * example) select and poll, which are approximately O(N) for N
      * equal to the total number of possible events. */
     EV_FEATURE_O1 = 0x02,
-    /** Require an event method that allows file descriptors as well as
-     * sockets. */
+    // 不仅监听socket 还有其他类型的文件描述符
     EV_FEATURE_FDS = 0x04,
     /** Require an event method that allows you to use EV_CLOSED to detect
      * connection close without the necessity of reading all the pending data.

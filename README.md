@@ -1,469 +1,260 @@
-<p align="center">
-  <img src="https://strcpy.net/libevent3.png" alt="libevent logo"/>
-</p>
+# I/O框架库概述
+## Reactor模式
+![](https://lsmg-img.oss-cn-beijing.aliyuncs.com/%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0/%E5%9B%BE12-1IO%E6%A1%86%E6%9E%B6%E7%BB%84%E7%BB%84%E4%BB%B6.png)
+句柄(Handler)
+由于统一了事件源, 一个事件一般跟一个句柄绑定在一起, 事件就绪之后 会通过句柄通知这一个事件.
+在Linux中 I/O 事件对应的句柄->文件描述符, 信号事件->信号值
 
+事件多路分发器(EventDemultiplexer)
+事件的到来是随机的, 异步的. 所以只能通过一个循环一直等待事件并进行处理 --- 事件循环
+一般通过IO复用实现 select poll epoll_wait
 
+事件处理器(EventHandle)
+具体事件处理器(ConcreteEventHandler)
+事件处理器执行事件对应的业务逻辑, 通常包含一个或多个handler_event回调函数, 这些回调函数在事件循环中被执行
 
-[![Appveyor Win32 Build Status](https://ci.appveyor.com/api/projects/status/ng3jg0uhy44mp7ik?svg=true)](https://ci.appveyor.com/project/libevent/libevent)
-[![Travis Build Status](https://travis-ci.org/libevent/libevent.svg?branch=master)](https://travis-ci.org/libevent/libevent)
-[![Coverage Status](https://coveralls.io/repos/github/libevent/libevent/badge.svg)](https://coveralls.io/github/libevent/libevent)
-[![Join the chat at https://gitter.im/libevent/libevent](https://badges.gitter.im/libevent/libevent.svg)](https://gitter.im/libevent/libevent?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Reactor
+handler_events: 执行事件循环 重复等待事件, 然后依次调用对应的事件处理器
+register_handler: 向事件多路分发器中注册事件
+remove_handler: 从中删除一个事件
 
+![](https://lsmg-img.oss-cn-beijing.aliyuncs.com/%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0/%E5%9B%BE12-2%20IO%E6%A1%86%E6%9E%B6%E5%BA%93%E7%9A%84%E5%B7%A5%E4%BD%9C%E6%97%B6%E5%BA%8F%E5%9B%BE.png)
 
+## Libevent源码分析
+```c++
+#include <sys/signal.h>
+#include <event.h>
+#include <cstdio>
 
-# 0. BUILDING AND INSTALLATION (Briefly)
+void signal_cb(int fd, short event, void* argc)
+{
+    event_base* base = (event_base*)argc;
+    timeval delay = {2, 0};
 
-## Autoconf
+    printf("Caught an interrupt signal\n");
+    event_base_loopexit(base, &delay);
+}
 
-     $ ./configure
-     $ make
-     $ make verify   # (optional)
-     $ sudo make install
+void timeout_cb(int fd, short event, void* argc)
+{
+    printf("timeout\n");
+}
+int main()
+{
+    // 相当于创建一个Reactor实例
+    event_base* base = event_init();
+    
+    event* signal_event = evsignal_new(base, SIGINT, signal_cb, base);
+    event_add(signal_event, nullptr);
+    
+    event* timeout_event = evtimer_new(base, timeout_cb, nullptr);
+    timeval tv{1, 0};
+    event_add(timeout_event, &tv);
+    
+    event_base_dispatch(base);
+    event_free(signal_event);
+    event_free(timeout_event);
+    event_base_free(base);
+}
+```
+创建一个事件处理器 然后为绑定上相应的回调函数.
+然后把这个事件处理器注册到事件队列中中,
 
-## CMake (General)
+然后事件多路分发器依靠循环一直等待事件的到来, 事件到来后通知相应的事件处理器
+Reactor则管理这些
 
+首先要去了解下 `事件处理器` 对应的就是event这个结构体
+```c++
+struct event {
+	struct event_callback ev_evcallback;
 
-The following Libevent specific CMake variables are as follows (the values being
-the default).
+	// 事件处理器从属的 event_base
+	struct event_base *ev_base;
+	// 信号值 或者 文件描述符
+	evutil_socket_t ev_fd;
+	// 定时器的超时时间
+	struct timeval ev_timeout;
+	
+	// 仅用于定时事件
+	union {
+		// 队列--指出在通用定时器中的位置
+		TAILQ_ENTRY(event) ev_next_with_common_timeout;
+		// 时间堆--指出了在时间堆中的位置
+		int min_heap_idx;
+	} ev_timeout_pos;
+
+	union {
+		struct {
+			// 通过这个成员 将具有相同文件描述符的IO事件处理器串联起来
+			LIST_ENTRY (event) ev_io_next;
+			struct timeval ev_timeout;
+		} ev_io;
+		struct {
+			// 相同信号的串联起来
+			LIST_ENTRY (event) ev_signal_next;
+			short ev_ncalls;
+			/* Allows deletes in callback */
+			short *ev_pncalls;
+		} ev_signal;
+	} ev_;
+
+	// 事件类型, 可以通过位处理设置非互斥事件
+	short ev_events;
+	// 当前激活事件的类型, 说明被激活的原因
+	short ev_res;
+};
+```
+可以看到其中有很多的属性, 三种事件对应的不同的属性.
+
+这些属性的填充函数
+`evsignal_new``evtimer_new`是宏 统一调用`event_new`
+`event_new`调用`event_assign`来进行主要的填充
+
 
 ```
-# Type of the library to build (SHARED or STATIC)
-# Default is: SHARED for MSVC, otherwise BOTH
-EVENT__LIBRARY_TYPE:STRING=DEFAULT
+//@通过宏封装注册函数
 
-# Installation directory for CMake files
-EVENT_INSTALL_CMAKE_DIR:PATH=lib/cmake/libevent
-
-# Enable running gcov to get a test coverage report (only works with
-# GCC/CLang). Make sure to enable -DCMAKE_BUILD_TYPE=Debug as well.
-EVENT__COVERAGE:BOOL=OFF
-
-# Defines if Libevent should build without the benchmark executables
-EVENT__DISABLE_BENCHMARK:BOOL=OFF
-
-# Define if Libevent should build without support for a debug mode
-EVENT__DISABLE_DEBUG_MODE:BOOL=OFF
-
-# Define if Libevent should not allow replacing the mm functions
-EVENT__DISABLE_MM_REPLACEMENT:BOOL=OFF
-
-# Define if Libevent should build without support for OpenSSL encryption
-EVENT__DISABLE_OPENSSL:BOOL=OFF
-
-# Disable the regress tests
-EVENT__DISABLE_REGRESS:BOOL=OFF
-
-# Disable sample files
-EVENT__DISABLE_SAMPLES:BOOL=OFF
-
-# If tests should be compiled or not
-EVENT__DISABLE_TESTS:BOOL=OFF
-
-# Define if Libevent should not be compiled with thread support
-EVENT__DISABLE_THREAD_SUPPORT:BOOL=OFF
-
-# Enables verbose debugging
-EVENT__ENABLE_VERBOSE_DEBUG:BOOL=OFF
-
-# When cross compiling, forces running a test program that verifies that Kqueue
-# works with pipes. Note that this requires you to manually run the test program
-# on the the cross compilation target to verify that it works. See CMake
-# documentation for try_run for more details
-EVENT__FORCE_KQUEUE_CHECK:BOOL=OFF
+一个事件生成函数 经过宏的封装(可以自动填充某些此事件用不到的参数)可以更方便的对应不同事件的生成, 既统一了注册, 又方便用户调用
 ```
+属性之一便是回调函数, 事件回调函数有自己的规定
+```
+//@统一事件回调函数
 
-__More variables can be found by running `cmake -LAH <sourcedir_path>`__
-
-
-## CMake (Windows)
-
-Install CMake: <https://www.cmake.org>
-
-
-     $ md build && cd build
-     $ cmake -G "Visual Studio 10" ..   # Or whatever generator you want to use cmake --help for a list.
-     $ start libevent.sln
-
-## CMake (Unix)
-
-     $ mkdir build && cd build
-     $ cmake ..     # Default to Unix Makefiles.
-     $ make
-     $ make verify  # (optional)
-
-
-# 1. BUILDING AND INSTALLATION (In Depth)
-
-## Autoconf
-
-To build Libevent, type
-
-     $ ./configure && make
-
-
- (If you got Libevent from the git repository, you will
-  first need to run the included "autogen.sh" script in order to
-  generate the configure script.)
-
-You can run the regression tests by running
-
-     $ make verify
-
-Install as root via
-
-     $ make install
-
-Before reporting any problems, please run the regression tests.
-
-To enable low-level tracing, build the library as:
-
-     $ CFLAGS=-DUSE_DEBUG ./configure [...]
-
-Standard configure flags should work.  In particular, see:
-
-     --disable-shared          Only build static libraries.
-     --prefix                  Install all files relative to this directory.
-
-
-The configure script also supports the following flags:
-
-     --enable-gcc-warnings     Enable extra compiler checking with GCC.
-     --disable-malloc-replacement
-                               Don't let applications replace our memory
-                               management functions.
-     --disable-openssl         Disable support for OpenSSL encryption.
-     --disable-thread-support  Don't support multithreaded environments.
-
-## CMake (Windows)
-
-(Note that autoconf is currently the most mature and supported build
-environment for Libevent; the CMake instructions here are new and
-experimental, though they _should_ be solid.  We hope that CMake will
-still be supported in future versions of Libevent, and will try to
-make sure that happens.)
-
-First of all install <https://www.cmake.org>.
-
-To build Libevent using Microsoft Visual studio open the "Visual Studio Command prompt" and type:
+void (*callback)(evutil_socket_t, short, void *)
+这样能够统一回调函数的格式, 同时方便管理
+```
+事件处理器创建完毕, 该把事件处理器添加到事件注册队列. 样例代码中通过的`event_add`函数来实现将事件处理器添加到事件注册队列
+`event_add`实际由`event_add_nolock_`实现 所以接下来是`event_add_nolock_`函数的说明
 
 ```
-$ cd <libevent source dir>
-$ mkdir build && cd build
-$ cmake -G "Visual Studio 10" ..   # Or whatever generator you want to use cmake --help for a list.
-$ start libevent.sln
+//@事件处理器的分发实现
+将传入的event按照不同类型的事件处理器 分别处理
+(因为event_new已经填充了ev_events说明事件类型)
+
+IO事件 添加绑定
+信号事件 绑定相应的信号
+定时器 放入相关的的时间管理数据结构中
+```
+使用`event_queue_insert_inserted`进行注册
+这里的代码2.1.11 与书上的差别较大, 少了多一半的功能, 也没有被抽成函数, 暂不知道对应的功能代码去了哪里
+照书上来说`event_queue_insert_inserted`实现的是将事件处理器加入到`event_base`的某个事件队列中. 对于新添加的IO和信号事件处理器, 还需要让事件多路分发器来监听对应的事件, 然后建立相应的映射关系. 分别使用`evmap_io_add_`和`evmap_signal_add_`(相当于图中的`register_event`)建立映射. 
+
+`evmap_io_add_`中有一个结构体`event_io_map`
+`event_io_map`会根据不同的平台最终对应不同的数据结构
+
+`evmap_io_add_`函数
+函数中用到的东西, 我目前吸收不了....... 总之是为将IO事件处理器加入到`event_base`的事件队列中实现的
+
+`eventop`结构体 是`event_base`中封装IO复用机制的结构体, 提供了统一的接口
+```c++
+// 为给定的event_base声明后端的结构体
+struct eventop {
+	// 后端IO复用技术的名称
+	const char *name;
+
+	// 初始化 函数需要初始化所有要用的属性
+	// 返回的指针会被event_init存储在event_base.evbase
+	// 失败后返回NULL
+	void *(*init)(struct event_base *);
+	// 注册事件
+	int (*add)(struct event_base *, evutil_socket_t fd, short old, short events, void *fdinfo);
+	// 删除事件
+	int (*del)(struct event_base *, evutil_socket_t fd, short old, short events, void *fdinfo);
+	// 等待事件
+	int (*dispatch)(struct event_base *, struct timeval *);
+	// 释放IO复用机制使用的资源
+	void (*dealloc)(struct event_base *);
+	// 标记fork后是否需要重新初始化event_base的标志位
+	int need_reinit;
+	// 用于设定io复用技术支持的一些特性
+	enum event_method_feature features;
+	// 额外内存的分配
+	size_t fdinfo_len;
+};
 ```
 
-In the above, the ".." refers to the dir containing the Libevent source code. 
-You can build multiple versions (with different compile time settings) from the same source tree
-by creating other build directories. 
+`event_base`是Libevent的Reactor. 超长结构体 删除了我不理解的部分
+```c++
+struct event_base {
+	// 记录选择的I/O复用机制
+	const struct eventop *evsel;
+	// 指向IO复用机制真正存储的数据
+	void *evbase;
 
-It is highly recommended to build "out of source" when using
-CMake instead of "in source" like the normal behaviour of autoconf for this reason.
+	// 事件变换队列 如果一个文件描述符上注册的事件被多次修改, 则可以使用缓冲避免重复的系统调用
+	// 比如epoll_ctl, 仅能用于时间复杂度O(1)的IO复用技术
+	struct event_changelist changelist;
 
-The "NMake Makefiles" CMake generator can be used to build entirely via the command line.
+	// 信号的后端处理机制
+	const struct eventop *evsigsel;
+	// 信号事件处理器使用的数据结构, 其中封装了socketpair创建的管道. 用于信号处理函数和
+	// 事件多路分发器之间的通信, 统一事件源的思路
+	struct evsig_info sig;
 
-To get a list of settings available for the project you can type:
+	// 添加到event_base的虚拟(所有, 激活)事件数量, 虚拟(所有, 激活)事件最大数量
+	int virtual_event_count;
+	int virtual_event_count_max;
+	int event_count;
+	int event_count_max;
+	int event_count_active;
+	int event_count_active_max;
 
+	// 处理完事件后 是否退出循环
+	int event_gotterm;
+	// 是否立即终止循环
+	int event_break;
+	// 是否启动一个新的事件循环
+	int event_continue;
+
+	// 当前正在处理的活动事件队列的优先级
+	int event_running_priority;
+
+	// 标记事件循环是否已经启动, 防止重入
+	int running_loop;
+
+	// 活动事件队列数组. 索引值越小的队列优先级越高. 高优先级的活动事件队列中的事件处理器被优先处理
+	struct evcallback_list *activequeues;
+	// 活动事件队列数组的大小 说明有nactivequeues个不同优先级的活动事件队列
+	int nactivequeues;
+	/** A list of event_callbacks that should become active the next time
+	 * we process events, but not this time. */
+	struct evcallback_list active_later_queue;
+
+	// 共同超时逻辑
+
+	// 管理通用定时器队列 实体数量 总数
+	struct common_timeout_list **common_timeout_queues;
+	int n_common_timeouts;
+	int n_common_timeouts_allocated;
+
+	// 文件描述符和IO事件之间的映射关系表
+	struct event_io_map io;
+	// 信号值和信号事件之间的映射关系表
+	struct event_signal_map sigmap;
+	// 时间堆
+	struct min_heap timeheap;
+
+	// 管理系统时间的成员
+	struct timeval tv_cache;
+	struct evutil_monotonic_timer monotonic_timer;
+	struct timeval tv_clock_diff;
+	time_t last_updated_clock_diff;
+
+#ifndef EVENT__DISABLE_THREAD_SUPPORT
+	// 多线程支持
+	
+	// 当前运行该event_base的事件循环的线程
+	unsigned long th_owner_id;
+	// 独占锁
+	void *th_base_lock;
+	// 当前事件循环正在执行哪个事件处理器的回调函数
+	void *current_event_cond;
+	// 等待的线程数
+	int current_event_waiters;
+#endif
+	// 正在处理的事件处理器的回调函数
+	struct event_callback *current_event;
+};
 ```
-$ cmake -LH ..
-```
 
-### GUI
-
-CMake also provides a GUI that lets you specify the source directory and output (binary) directory
-that the build should be placed in.
-
-# 2. USEFUL LINKS:
-
-For the latest released version of Libevent, see the official website at
-<http://libevent.org/> .
-
-There's a pretty good work-in-progress manual up at
-   <http://www.wangafu.net/~nickm/libevent-book/> .
-
-For the latest development versions of Libevent, access our Git repository
-via
-
-```
-$ git clone https://github.com/libevent/libevent.git
-```
-
-You can browse the git repository online at:
-
-<https://github.com/libevent/libevent>
-
-To report bugs, issues, or ask for new features:
-
-__Patches__: https://github.com/libevent/libevent/pulls
-> OK, those are not really _patches_. You fork, modify, and hit the "Create Pull Request" button.
-> You can still submit normal git patches via the mailing list.
-
-__Bugs, Features [RFC], and Issues__: https://github.com/libevent/libevent/issues
-> Or you can do it via the mailing list.
-
-There's also a libevent-users mailing list for talking about Libevent
-use and development: 
-
-<http://archives.seul.org/libevent/users/>
-
-# 3. ACKNOWLEDGMENTS
-
-The following people have helped with suggestions, ideas, code or
-fixing bugs:
-
- * Samy Al Bahra
- * Antony Antony
- * Jacob Appelbaum
- * Arno Bakker
- * Weston Andros Adamson
- * William Ahern
- * Ivan Andropov
- * Sergey Avseyev
- * Avi Bab
- * Joachim Bauch
- * Andrey Belobrov
- * Gilad Benjamini
- * Stas Bekman
- * Denis Bilenko
- * Julien Blache
- * Kevin Bowling
- * Tomash Brechko
- * Kelly Brock
- * Ralph Castain
- * Adrian Chadd
- * Lawnstein Chan
- * Shuo Chen
- * Ka-Hing Cheung
- * Andrew Cox
- * Paul Croome
- * George Danchev
- * Andrew Danforth
- * Ed Day
- * Christopher Davis
- * Mike Davis
- * Frank Denis
- * Antony Dovgal
- * Mihai Draghicioiu
- * Alexander Drozdov
- * Mark Ellzey
- * Shie Erlich
- * Leonid Evdokimov
- * Juan Pablo Fernandez
- * Christophe Fillot
- * Mike Frysinger
- * Remi Gacogne
- * Artem Germanov
- * Alexander von Gernler
- * Diego Giagio
- * Artur Grabowski
- * Diwaker Gupta
- * Kuldeep Gupta
- * Sebastian Hahn
- * Dave Hart
- * Greg Hazel
- * Nicholas Heath
- * Michael Herf
- * Savg He
- * Mark Heily
- * Maxime Henrion
- * Michael Herf
- * Greg Hewgill
- * Andrew Hochhaus
- * Aaron Hopkins
- * Tani Hosokawa
- * Jamie Iles
- * Xiuqiang Jiang
- * Claudio Jeker
- * Evan Jones
- * Marcin Juszkiewicz
- * George Kadianakis
- * Makoto Kato
- * Phua Keat
- * Azat Khuzhin
- * Alexander Klauer
- * Kevin Ko
- * Brian Koehmstedt
- * Marko Kreen
- * Ondřej Kuzník
- * Valery Kyholodov
- * Ross Lagerwall
- * Scott Lamb
- * Christopher Layne
- * Adam Langley
- * Graham Leggett
- * Volker Lendecke
- * Philip Lewis
- * Zhou Li
- * David Libenzi
- * Yan Lin
- * Moshe Litvin
- * Simon Liu
- * Mitchell Livingston
- * Hagne Mahre
- * Lubomir Marinov
- * Abilio Marques
- * Nicolas Martyanoff
- * Abel Mathew
- * Nick Mathewson
- * James Mansion
- * Nicholas Marriott
- * Andrey Matveev
- * Caitlin Mercer
- * Dagobert Michelsen
- * Andrea Montefusco
- * Mansour Moufid
- * Mina Naguib
- * Felix Nawothnig
- * Trond Norbye
- * Linus Nordberg
- * Richard Nyberg
- * Jon Oberheide
- * John Ohl
- * Phil Oleson
- * Alexey Ozeritsky
- * Dave Pacheco
- * Derrick Pallas
- * Tassilo von Parseval
- * Catalin Patulea
- * Patrick Pelletier
- * Simon Perreault
- * Dan Petro
- * Pierre Phaneuf
- * Amarin Phaosawasdi
- * Ryan Phillips
- * Dimitre Piskyulev
- * Pavel Plesov
- * Jon Poland
- * Roman Puls
- * Nate R
- * Robert Ransom
- * Balint Reczey
- * Bert JW Regeer
- * Nate Rosenblum
- * Peter Rosin
- * Maseeb Abdul Qadir
- * Wang Qin
- * Alex S
- * Gyepi Sam
- * Hanna Schroeter
- * Ralf Schmitt
- * Mike Smellie
- * Steve Snyder
- * Nir Soffer
- * Dug Song
- * Dongsheng Song
- * Hannes Sowa
- * Joakim Soderberg
- * Joseph Spadavecchia
- * Kevin Springborn
- * Harlan Stenn
- * Andrew Sweeney
- * Ferenc Szalai
- * Brodie Thiesfield
- * Jason Toffaletti
- * Brian Utterback
- * Gisle Vanem
- * Bas Verhoeven
- * Constantine Verutin
- * Colin Watt
- * Zack Weinberg
- * Jardel Weyrich
- * Jay R. Wren
- * Zack Weinberg
- * Mobai Zhang
- * Alejo
- * Alex
- * Taral
- * propanbutan
- * masksqwe
- * mmadia
- * yangacer
- * Andrey Skriabin
- * basavesh.as
- * billsegall
- * Bill Vaughan
- * Christopher Wiley
- * David Paschich
- * Ed Schouten
- * Eduardo Panisset
- * Jan Heylen
- * jer-gentoo
- * Joakim Söderberg
- * kirillDanshin
- * lzmths
- * Marcus Sundberg
- * Mark Mentovai
- * Mattes D
- * Matyas Dolak
- * Neeraj Badlani
- * Nick Mathewson
- * Rainer Keller
- * Seungmo Koo
- * Thomas Bernard
- * Xiao Bao Clark
- * zeliard
- * Zonr Chang
- * Kurt Roeckx
- * Seven
- * Simone Basso
- * Vlad Shcherban
- * Tim Hentenaar
- * Breaker
- * johnsonlee
- * Philip Prindeville
- * Vis Virial
- * Andreas Gustafsson
- * Andrey Okoshkin
- * an-tao
- * baixiangcpp
- * Bernard Spil
- * Bogdan Harjoc
- * Carlo Marcelo Arenas Belón
- * David Benjamin
- * David Disseldorp
- * Dmitry Alimov
- * Dominic Chen
- * dpayne
- * ejurgensen
- * Fredrik Strupe
- * Gonçalo Ribeiro
- * James Synge
- * Jan Beich
- * Jesse Fang
- * Jiri Luznicky
- * José Luis Millán
- * Kiyoshi Aman
- * Leo Zhang
- * lightningkay
- * Luke Dashjr
- * Marcin Szewczyk
- * Maximilian Brunner
- * Maya Rashish
- * Murat Demirten
- * Nathan French
- * Nikolay Edigaryev
- * Philip Herron
- * Redfoxmoon
- * stenn
- * SuckShit
- * The Gitter Badger
- * tim-le
- * Vincent JARDIN
- * Xiang Zhang
- * Xiaozhou Liu
- * yongqing.jiao
- * Enji Cooper
- * linxiaohui
- * Seong-Joong Kim
- * Tobias Stoeckmann
- * Yury Korzhetsky
- * zhuizhuhaomeng
- * Pierce Lopez
- * yuangongji
- * Keith Smiley
- * jeremyerb
- * Fabrice Fontaine
- * wenyg
-
-
-If we have forgotten your name, please contact us.
+事件循环, libevent的动力, 即事件循环

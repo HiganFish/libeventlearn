@@ -53,9 +53,7 @@
 #include "mm-internal.h"
 #include "changelist-internal.h"
 
-/** An entry for an evmap_io list: notes all the events that want to read or
-	write on a given fd, and the number of each.
-  */
+// IO事件队列 evmap_io list的实体 记录所有在给定fd上的 读写事件
 struct evmap_io {
 	struct event_dlist events;
 	ev_uint16_t nread;
@@ -63,8 +61,7 @@ struct evmap_io {
 	ev_uint16_t nclose;
 };
 
-/* An entry for an evmap_signal list: notes all the events that want to know
-   when a signal triggers. */
+// 信号事件队列 准确的说evmap_signal.events才是
 struct evmap_signal {
 	struct event_dlist events;
 };
@@ -72,11 +69,11 @@ struct evmap_signal {
 /* On some platforms, fds start at 0 and increment by 1 as they are
    allocated, and old numbers get used.  For these platforms, we
    implement io maps just like signal maps: as an array of pointers to
-   struct evmap_io.  But on other platforms (windows), sockets are not
-   0-indexed, not necessarily consecutive, and not necessarily reused.
+   struct evmap_io.  但是在其他平台(Windows) fd不一定从0开始, 不一定连续 也不一定重用
    There, we use a hashtable to implement evmap_io.
 */
 #ifdef EVMAP_USE_HT
+// 如果定义了EVMAP_USE_HT 则event_io_map中成员如下类型
 struct event_map_entry {
 	HT_ENTRY(event_map_entry) map_node;
 	evutil_socket_t fd;
@@ -267,13 +264,15 @@ evmap_io_init(struct evmap_io *entry)
 }
 
 
-/* return -1 on error, 0 on success if nothing changed in the event backend,
- * and 1 on success if something did. */
+// -1 错误 0成功 但未作修改 1成功 做了修改
 int
 evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 {
+	// 获得event_base的后端IO复用机制
 	const struct eventop *evsel = base->evsel;
+	// 获得event_base中的文件描述符和IO事件队列的映射表(哈希表 或数组)
 	struct event_io_map *io = &base->io;
+	// fd参数对应的IO事件队列
 	struct evmap_io *ctx = NULL;
 	int nread, nwrite, nclose, retval = 0;
 	short res = 0, old = 0;
@@ -285,11 +284,14 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 		return 0;
 
 #ifndef EVMAP_USE_HT
+	// 如果fd 大于nentries则说明数组需要扩容
 	if (fd >= io->nentries) {
 		if (evmap_make_space(io, fd, sizeof(struct evmap_io *)) == -1)
 			return (-1);
 	}
 #endif
+	// 这个宏根据EVMAP_USE_HT是否被定义 有不同的实现, 目的都是创建ctx,
+	// 在映射表IO中为fd和ctx添加映射关系
 	GET_IO_SLOT_AND_CTOR(ctx, io, fd, evmap_io, evmap_io_init,
 						 evsel->fdinfo_len);
 
@@ -331,9 +333,8 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 
 	if (res) {
 		void *extra = ((char*)ctx) + sizeof(struct evmap_io);
-		/* XXX(niels): we cannot mix edge-triggered and
-		 * level-triggered, we should probably assert on
-		 * this. */
+		// 向事件多路分发器中注册事件. add函数是事件多路分发器的接口函数之一. 对不用的后端IO
+		// 复用机制, 这些借口有不同的实现
 		if (evsel->add(base, ev->ev_fd,
 			old, (ev->ev_events & EV_ET) | res, extra) == -1)
 			return (-1);
@@ -343,6 +344,7 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 	ctx->nread = (ev_uint16_t) nread;
 	ctx->nwrite = (ev_uint16_t) nwrite;
 	ctx->nclose = (ev_uint16_t) nclose;
+	// 将ev插入IO事件队列ctx的尾部
 	LIST_INSERT_HEAD(&ctx->events, ev, ev_io_next);
 
 	return (retval);
