@@ -153,17 +153,20 @@ typedef void (*bufferevent_data_cb)(struct bufferevent *bev, void *ctx);
 */
 typedef void (*bufferevent_event_cb)(struct bufferevent *bev, short what, void *ctx);
 
-/** Options that can be specified when creating a bufferevent */
+// 创建bufferevent时传递的参数
 enum bufferevent_options {
 	/** If set, we close the underlying file
 	 * descriptor/bufferevent/whatever when this bufferevent is freed. */
+    // 传递完数据就关闭连接
 	BEV_OPT_CLOSE_ON_FREE = (1<<0),
 
 	/** If set, and threading is enabled, operations on this bufferevent
 	 * are protected by a lock */
+     // 启用了多线程 需要线程安全的实现
 	BEV_OPT_THREADSAFE = (1<<1),
 
 	/** If set, callbacks are run deferred in the event loop. */
+    // 设置后回调函数将会被延迟运行
 	BEV_OPT_DEFER_CALLBACKS = (1<<2),
 
 	/** If set, callbacks are executed without locks being held on the

@@ -54,21 +54,21 @@ extern "C" {
 /* For evkeyvalq */
 #include <event2/keyvalq_struct.h>
 
-// ÊÂ¼ş´¦ÀíÆ÷´ÓÊôÓÚ×¢²áÊÂ¼ş¶ÓÁĞ
+// äº‹ä»¶å¤„ç†å™¨ä»å±äºæ³¨å†Œäº‹ä»¶é˜Ÿåˆ—
 #define EVLIST_TIMEOUT	    0x01
-// ´ÓÊôÓÚ×¢²áÊÂ¼ş¶ÓÁĞ
+// ä»å±äºæ³¨å†Œäº‹ä»¶é˜Ÿåˆ—
 #define EVLIST_INSERTED	    0x02
-// Ã»ÓĞÊ¹ÓÃ?
+// æ²¡æœ‰ä½¿ç”¨?
 #define EVLIST_SIGNAL	    0x04
-// ´ÓÊôÓÚ»î¶¯ÊÂ¼ş¶ÓÁĞ
+// ä»å±äºæ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—
 #define EVLIST_ACTIVE	    0x08
-// ÄÚ²¿Ê¹ÓÃ
+// å†…éƒ¨ä½¿ç”¨
 #define EVLIST_INTERNAL	    0x10
 #define EVLIST_ACTIVE_LATER 0x20
 #define EVLIST_FINALIZING   0x40
-// ÊÂ¼ş´¦ÀíÆ÷ÒÑ¾­±»³õÊ¼»¯
+// äº‹ä»¶å¤„ç†å™¨å·²ç»è¢«åˆå§‹åŒ–
 #define EVLIST_INIT	    0x80
-// È«±êÖ¾
+// å…¨æ ‡å¿—
 #define EVLIST_ALL          0xff
 
 /* Fix so that people don't have to run with <sys/queue.h> */
@@ -110,6 +110,7 @@ struct name {								\
 
 struct event;
 
+// å›è°ƒå‡½æ•°ç»“æ„ä½“
 struct event_callback {
 	TAILQ_ENTRY(event_callback) evcb_active_next;
 	short evcb_flags;
@@ -129,31 +130,31 @@ struct event_base;
 struct event {
 	struct event_callback ev_evcallback;
 
-	// ½öÓÃÓÚ¶¨Ê±ÊÂ¼ş
+	// ä»…ç”¨äºå®šæ—¶äº‹ä»¶
 	union {
-		// ¶ÓÁĞ--Ö¸³öÔÚÍ¨ÓÃ¶¨Ê±Æ÷ÖĞµÄÎ»ÖÃ
+		// é˜Ÿåˆ—--æŒ‡å‡ºåœ¨é€šç”¨å®šæ—¶å™¨ä¸­çš„ä½ç½®
 		TAILQ_ENTRY(event) ev_next_with_common_timeout;
-		// Ê±¼ä¶Ñ--Ö¸³öÁËÔÚÊ±¼ä¶ÑÖĞµÄÎ»ÖÃ
+		// æ—¶é—´å †--æŒ‡å‡ºäº†åœ¨æ—¶é—´å †ä¸­çš„ä½ç½®
 		int min_heap_idx;
 	} ev_timeout_pos;
 
-	// ĞÅºÅÖµ »òÕß ÎÄ¼şÃèÊö·û
+	// ä¿¡å·å€¼ æˆ–è€… æ–‡ä»¶æè¿°ç¬¦
 	evutil_socket_t ev_fd;
 
-	// ÊÂ¼ş´¦ÀíÆ÷´ÓÊôµÄ event_base
+	// äº‹ä»¶å¤„ç†å™¨ä»å±çš„ event_base
 	struct event_base *ev_base;
 
 	union {
 		/* used for io events */
 		struct {
-			// Í¨¹ıÕâ¸ö³ÉÔ± ½«¾ßÓĞÏàÍ¬ÎÄ¼şÃèÊö·ûµÄIOÊÂ¼ş´¦ÀíÆ÷´®ÁªÆğÀ´
+			// é€šè¿‡è¿™ä¸ªæˆå‘˜ å°†å…·æœ‰ç›¸åŒæ–‡ä»¶æè¿°ç¬¦çš„IOäº‹ä»¶å¤„ç†å™¨ä¸²è”èµ·æ¥
 			LIST_ENTRY (event) ev_io_next;
 			struct timeval ev_timeout;
 		} ev_io;
 
 		/* used by signal events */
 		struct {
-			// ÏàÍ¬ĞÅºÅµÄ´®ÁªÆğÀ´
+			// ç›¸åŒä¿¡å·çš„ä¸²è”èµ·æ¥
 			LIST_ENTRY (event) ev_signal_next;
 			short ev_ncalls;
 			/* Allows deletes in callback */
@@ -161,11 +162,11 @@ struct event {
 		} ev_signal;
 	} ev_;
 
-	// ÊÂ¼şÀàĞÍ, ¿ÉÒÔÍ¨¹ıÎ»´¦ÀíÉèÖÃ·Ç»¥³âÊÂ¼ş
+	// äº‹ä»¶ç±»å‹, å¯ä»¥é€šè¿‡ä½å¤„ç†è®¾ç½®éäº’æ–¥äº‹ä»¶
 	short ev_events;
-	// µ±Ç°¼¤»îÊÂ¼şµÄÀàĞÍ, ËµÃ÷±»¼¤»îµÄÔ­Òò
+	// å½“å‰æ¿€æ´»äº‹ä»¶çš„ç±»å‹, è¯´æ˜è¢«æ¿€æ´»çš„åŸå› 
 	short ev_res;
-	// ¶¨Ê±Æ÷µÄ³¬Ê±Ê±¼ä
+	// å®šæ—¶å™¨çš„è¶…æ—¶æ—¶é—´
 	struct timeval ev_timeout;
 };
 

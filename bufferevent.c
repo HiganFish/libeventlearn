@@ -305,8 +305,8 @@ bufferevent_trigger_event(struct bufferevent *bufev, short what, int options)
 	bufferevent_decref_and_unlock_(bufev);
 }
 
-int
-bufferevent_init_common_(struct bufferevent_private *bufev_private,
+// 缓冲事件通用初始化函数 分配内存 保存event_base
+int bufferevent_init_common_(struct bufferevent_private *bufev_private,
     struct event_base *base,
     const struct bufferevent_ops *ops,
     enum bufferevent_options options)
@@ -385,6 +385,7 @@ err:
 	return -1;
 }
 
+// 设置回调函数
 void
 bufferevent_setcb(struct bufferevent *bufev,
     bufferevent_data_cb readcb, bufferevent_data_cb writecb,
@@ -478,6 +479,7 @@ bufferevent_read_buffer(struct bufferevent *bufev, struct evbuffer *buf)
 	return (evbuffer_add_buffer(buf, bufev->input));
 }
 
+// 启用bufferevent上某个事件
 int
 bufferevent_enable(struct bufferevent *bufev, short event)
 {
@@ -569,6 +571,7 @@ bufferevent_disable_hard_(struct bufferevent *bufev, short event)
 	return r;
 }
 
+// 关闭事件
 int
 bufferevent_disable(struct bufferevent *bufev, short event)
 {

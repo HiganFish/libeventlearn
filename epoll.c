@@ -27,7 +27,7 @@
 #include "event2/event-config.h"
 #include "evconfig-private.h"
 
-#ifdef EVENT__HAVE_EPOLL
+// #ifdef EVENT__HAVE_EPOLL
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -272,6 +272,7 @@ epoll_apply_one_change(struct event_base *base,
 	int op, events = 0;
 	int idx;
 
+	// 获取event_change 真正的op和events 用来填充epoll_event
 	idx = EPOLL_OP_TABLE_INDEX(ch);
 	op = epoll_op_table[idx].op;
 	events = epoll_op_table[idx].events;
@@ -413,6 +414,7 @@ epoll_nochangelist_del(struct event_base *base, evutil_socket_t fd,
 	return epoll_apply_one_change(base, base->evbase, &ch);
 }
 
+// 事件循环
 static int
 epoll_dispatch(struct event_base *base, struct timeval *tv)
 {
@@ -478,6 +480,7 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 	event_debug(("%s: epoll_wait reports %d", __func__, res));
 	EVUTIL_ASSERT(res <= epollop->nevents);
 
+	// 处理新到来的事件
 	for (i = 0; i < res; i++) {
 		int what = events[i].events;
 		short ev = 0;
@@ -485,7 +488,9 @@ epoll_dispatch(struct event_base *base, struct timeval *tv)
 		if (events[i].data.fd == epollop->timerfd)
 			continue;
 #endif
-
+		// 对面正常关闭 close或者ctrl+c 触发EPOLLIIN和EPOLLRDHUP
+		// EPOLLHUP 只有
+		// EPOLLERR 只有自己采取动作 才会出现这个错误 比如读写的时候才知道连接已经断开
 		if (what & (EPOLLHUP|EPOLLERR)) {
 			ev = EV_READ | EV_WRITE;
 		} else {
@@ -540,4 +545,4 @@ epoll_dealloc(struct event_base *base)
 	mm_free(epollop);
 }
 
-#endif /* EVENT__HAVE_EPOLL */
+// #endif /* EVENT__HAVE_EPOLL */

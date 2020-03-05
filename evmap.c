@@ -53,7 +53,7 @@
 #include "mm-internal.h"
 #include "changelist-internal.h"
 
-// IOÊÂ¼ş¶ÓÁĞ evmap_io listµÄÊµÌå ¼ÇÂ¼ËùÓĞÔÚ¸ø¶¨fdÉÏµÄ ¶ÁĞ´ÊÂ¼ş
+// IOäº‹ä»¶é˜Ÿåˆ— evmap_io listçš„å®ä½“ è®°å½•æ‰€æœ‰åœ¨ç»™å®šfdä¸Šçš„ è¯»å†™äº‹ä»¶
 struct evmap_io {
 	struct event_dlist events;
 	ev_uint16_t nread;
@@ -61,7 +61,7 @@ struct evmap_io {
 	ev_uint16_t nclose;
 };
 
-// ĞÅºÅÊÂ¼ş¶ÓÁĞ ×¼È·µÄËµevmap_signal.events²ÅÊÇ
+// ä¿¡å·äº‹ä»¶é˜Ÿåˆ— å‡†ç¡®çš„è¯´evmap_signal.eventsæ‰æ˜¯
 struct evmap_signal {
 	struct event_dlist events;
 };
@@ -69,11 +69,11 @@ struct evmap_signal {
 /* On some platforms, fds start at 0 and increment by 1 as they are
    allocated, and old numbers get used.  For these platforms, we
    implement io maps just like signal maps: as an array of pointers to
-   struct evmap_io.  µ«ÊÇÔÚÆäËûÆ½Ì¨(Windows) fd²»Ò»¶¨´Ó0¿ªÊ¼, ²»Ò»¶¨Á¬Ğø Ò²²»Ò»¶¨ÖØÓÃ
+   struct evmap_io.  ä½†æ˜¯åœ¨å…¶ä»–å¹³å°(Windows) fdä¸ä¸€å®šä»0å¼€å§‹, ä¸ä¸€å®šè¿ç»­ ä¹Ÿä¸ä¸€å®šé‡ç”¨
    There, we use a hashtable to implement evmap_io.
 */
 #ifdef EVMAP_USE_HT
-// Èç¹û¶¨ÒåÁËEVMAP_USE_HT Ôòevent_io_mapÖĞ³ÉÔ±ÈçÏÂÀàĞÍ
+// å¦‚æœå®šä¹‰äº†EVMAP_USE_HT åˆ™event_io_mapä¸­æˆå‘˜å¦‚ä¸‹ç±»å‹
 struct event_map_entry {
 	HT_ENTRY(event_map_entry) map_node;
 	evutil_socket_t fd;
@@ -264,15 +264,15 @@ evmap_io_init(struct evmap_io *entry)
 }
 
 
-// -1 ´íÎó 0³É¹¦ µ«Î´×÷ĞŞ¸Ä 1³É¹¦ ×öÁËĞŞ¸Ä
+// -1 é”™è¯¯ 0æˆåŠŸ ä½†æœªä½œä¿®æ”¹ 1æˆåŠŸ åšäº†ä¿®æ”¹
 int
 evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 {
-	// »ñµÃevent_baseµÄºó¶ËIO¸´ÓÃ»úÖÆ
+	// è·å¾—event_baseçš„åç«¯IOå¤ç”¨æœºåˆ¶
 	const struct eventop *evsel = base->evsel;
-	// »ñµÃevent_baseÖĞµÄÎÄ¼şÃèÊö·ûºÍIOÊÂ¼ş¶ÓÁĞµÄÓ³Éä±í(¹şÏ£±í »òÊı×é)
+	// è·å¾—event_baseä¸­çš„æ–‡ä»¶æè¿°ç¬¦å’ŒIOäº‹ä»¶é˜Ÿåˆ—çš„æ˜ å°„è¡¨(å“ˆå¸Œè¡¨ æˆ–æ•°ç»„)
 	struct event_io_map *io = &base->io;
-	// fd²ÎÊı¶ÔÓ¦µÄIOÊÂ¼ş¶ÓÁĞ
+	// fdå‚æ•°å¯¹åº”çš„IOäº‹ä»¶é˜Ÿåˆ—
 	struct evmap_io *ctx = NULL;
 	int nread, nwrite, nclose, retval = 0;
 	short res = 0, old = 0;
@@ -284,14 +284,14 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 		return 0;
 
 #ifndef EVMAP_USE_HT
-	// Èç¹ûfd ´óÓÚnentriesÔòËµÃ÷Êı×éĞèÒªÀ©Èİ
+	// å¦‚æœfd å¤§äºnentriesåˆ™è¯´æ˜æ•°ç»„éœ€è¦æ‰©å®¹
 	if (fd >= io->nentries) {
 		if (evmap_make_space(io, fd, sizeof(struct evmap_io *)) == -1)
 			return (-1);
 	}
 #endif
-	// Õâ¸öºê¸ù¾İEVMAP_USE_HTÊÇ·ñ±»¶¨Òå ÓĞ²»Í¬µÄÊµÏÖ, Ä¿µÄ¶¼ÊÇ´´½¨ctx,
-	// ÔÚÓ³Éä±íIOÖĞÎªfdºÍctxÌí¼ÓÓ³Éä¹ØÏµ
+	// è¿™ä¸ªå®æ ¹æ®EVMAP_USE_HTæ˜¯å¦è¢«å®šä¹‰ æœ‰ä¸åŒçš„å®ç°, ç›®çš„éƒ½æ˜¯åˆ›å»ºctx,
+	// åœ¨æ˜ å°„è¡¨IOä¸­ä¸ºfdå’Œctxæ·»åŠ æ˜ å°„å…³ç³»
 	GET_IO_SLOT_AND_CTOR(ctx, io, fd, evmap_io, evmap_io_init,
 						 evsel->fdinfo_len);
 
@@ -333,8 +333,8 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 
 	if (res) {
 		void *extra = ((char*)ctx) + sizeof(struct evmap_io);
-		// ÏòÊÂ¼ş¶àÂ··Ö·¢Æ÷ÖĞ×¢²áÊÂ¼ş. addº¯ÊıÊÇÊÂ¼ş¶àÂ··Ö·¢Æ÷µÄ½Ó¿Úº¯ÊıÖ®Ò». ¶Ô²»ÓÃµÄºó¶ËIO
-		// ¸´ÓÃ»úÖÆ, ÕâĞ©½è¿ÚÓĞ²»Í¬µÄÊµÏÖ
+		// å‘äº‹ä»¶å¤šè·¯åˆ†å‘å™¨ä¸­æ³¨å†Œäº‹ä»¶. addå‡½æ•°æ˜¯äº‹ä»¶å¤šè·¯åˆ†å‘å™¨çš„æ¥å£å‡½æ•°ä¹‹ä¸€. å¯¹ä¸ç”¨çš„åç«¯IO
+		// å¤ç”¨æœºåˆ¶, è¿™äº›å€Ÿå£æœ‰ä¸åŒçš„å®ç°
 		if (evsel->add(base, ev->ev_fd,
 			old, (ev->ev_events & EV_ET) | res, extra) == -1)
 			return (-1);
@@ -344,7 +344,7 @@ evmap_io_add_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 	ctx->nread = (ev_uint16_t) nread;
 	ctx->nwrite = (ev_uint16_t) nwrite;
 	ctx->nclose = (ev_uint16_t) nclose;
-	// ½«ev²åÈëIOÊÂ¼ş¶ÓÁĞctxµÄÎ²²¿
+	// å°†evæ’å…¥IOäº‹ä»¶é˜Ÿåˆ—ctxçš„å°¾éƒ¨
 	LIST_INSERT_HEAD(&ctx->events, ev, ev_io_next);
 
 	return (retval);
@@ -418,6 +418,7 @@ evmap_io_del_(struct event_base *base, evutil_socket_t fd, struct event *ev)
 	return (retval);
 }
 
+// å‡†å¤‡å¤„ç† æ¥å—åˆ°çš„äº‹ä»¶ä¹‹ä¸€
 void
 evmap_io_active_(struct event_base *base, evutil_socket_t fd, short events)
 {

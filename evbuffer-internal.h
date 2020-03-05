@@ -77,6 +77,8 @@ struct evbuffer_cb_entry {
 
 struct bufferevent;
 struct evbuffer_chain;
+
+//事件的缓冲区
 struct evbuffer {
 	/** The first chain in this buffer's linked list of chains. */
 	struct evbuffer_chain *first;
@@ -172,7 +174,7 @@ struct evbuffer_chain {
 	/** points to next buffer in the chain */
 	struct evbuffer_chain *next;
 
-	/** total allocation available in the buffer field. */
+	// buffer总长度
 	size_t buffer_len;
 
 	/** unused space at the beginning of buffer or an offset into a

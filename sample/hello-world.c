@@ -98,6 +98,7 @@ listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
 		event_base_loopbreak(base);
 		return;
 	}
+	// 设置新创建的bufferevent的 读写回调函数 启动写事件 禁用读事件
 	bufferevent_setcb(bev, NULL, conn_writecb, conn_eventcb, NULL);
 	bufferevent_enable(bev, EV_WRITE);
 	bufferevent_disable(bev, EV_READ);

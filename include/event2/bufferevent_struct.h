@@ -93,12 +93,16 @@ struct bufferevent {
 
 	struct event_watermark wm_read;
 	struct event_watermark wm_write;
-
+    
+    // 读回调
 	bufferevent_data_cb readcb;
+
+    // 写回调
 	bufferevent_data_cb writecb;
-	/* This should be called 'eventcb', but renaming it would break
-	 * backward compatibility */
+
+    // 错误回调
 	bufferevent_event_cb errorcb;
+    // 参数
 	void *cbarg;
 
 	struct timeval timeout_read;

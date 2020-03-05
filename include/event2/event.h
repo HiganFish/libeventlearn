@@ -499,14 +499,14 @@ int event_config_avoid_method(struct event_config *cfg, const char *method);
    event_base_get_features() to see which features are available.
 */
 enum event_method_feature {
-    // Ö§³Ö±ßÔµ´¥·¢ÊÂ¼ş
+    // æ”¯æŒè¾¹ç¼˜è§¦å‘äº‹ä»¶
     EV_FEATURE_ET = 0x01,
     /** Require an event method where having one event triggered among
      * many is [approximately] an O(1) operation. This excludes (for
      * example) select and poll, which are approximately O(N) for N
      * equal to the total number of possible events. */
     EV_FEATURE_O1 = 0x02,
-    // ²»½ö¼àÌısocket »¹ÓĞÆäËûÀàĞÍµÄÎÄ¼şÃèÊö·û
+    // ä¸ä»…ç›‘å¬socket è¿˜æœ‰å…¶ä»–ç±»å‹çš„æ–‡ä»¶æè¿°ç¬¦
     EV_FEATURE_FDS = 0x04,
     /** Require an event method that allows you to use EV_CLOSED to detect
      * connection close without the necessity of reading all the pending data.
@@ -908,17 +908,17 @@ int event_base_got_exit(struct event_base *);
 EVENT2_EXPORT_SYMBOL
 int event_base_got_break(struct event_base *);
 
-// ¶¨Ê±ÊÂ¼ş
+// å®šæ—¶äº‹ä»¶
 #define EV_TIMEOUT	0x01
-// ¿É¶ÁÊÂ¼ş
+// å¯è¯»äº‹ä»¶
 #define EV_READ		0x02
-// ¿ÉĞ´ÊÂ¼ş
+// å¯å†™äº‹ä»¶
 #define EV_WRITE	0x04
-// ĞÅºÅÊÂ¼ş
+// ä¿¡å·äº‹ä»¶
 #define EV_SIGNAL	0x08
-// ÓÀ¾ÃÊÂ¼ş ±»¼¤»îºó ²»»á×Ô¶¯É¾³ı
+// æ°¸ä¹…äº‹ä»¶ è¢«æ¿€æ´»å ä¸ä¼šè‡ªåŠ¨åˆ é™¤
 #define EV_PERSIST	0x10
-// ±ßÑØ´¥·¢ÊÂ¼ş epoll
+// è¾¹æ²¿è§¦å‘äº‹ä»¶ epoll
 #define EV_ET		0x20
 /**
  * If this option is provided, then event_del() will not block in one thread
@@ -940,7 +940,7 @@ int event_base_got_break(struct event_base *);
 #define EV_CLOSED	0x80
 /**@}*/
 
-// ÏÂÃæµÄÊÂ¼ş´¦ÀíÆ÷´´½¨ºê ÊµÏÖÁËÒ»¸ö½á¹¹¶ÔÓ¦Á½ÖÖ´¦ÀíÆ÷µÄ´´½¨
+// ä¸‹é¢çš„äº‹ä»¶å¤„ç†å™¨åˆ›å»ºå® å®ç°äº†ä¸€ä¸ªç»“æ„å¯¹åº”ä¸¤ç§å¤„ç†å™¨çš„åˆ›å»º
 #define evtimer_assign(ev, b, cb, arg) \
 	event_assign((ev), (b), -1, 0, (cb), (arg))
 #define evtimer_new(b, cb, arg)		event_new((b), -1, 0, (cb), (arg))

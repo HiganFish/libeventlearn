@@ -145,6 +145,7 @@ bufferevent_socket_outbuf_cb(struct evbuffer *buf,
 	}
 }
 
+// 缓冲事件读回调
 static void
 bufferevent_readcb(evutil_socket_t fd, short event, void *arg)
 {
@@ -361,6 +362,7 @@ bufferevent_socket_new(struct event_base *base, evutil_socket_t fd,
 		return NULL;
 	}
 	bufev = &bufev_p->bev;
+
 	evbuffer_set_flags(bufev->output, EVBUFFER_FLAG_DRAINS_TO_FD);
 
 	event_assign(&bufev->ev_read, bufev->ev_base, fd,

@@ -47,6 +47,7 @@ struct evconnlistener;
    @param socklen The length of addr
    @param user_arg the pointer passed to evconnlistener_new()
  */
+// 通知有新的连接到来
 typedef void (*evconnlistener_cb)(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int socklen, void *);
 
 /**

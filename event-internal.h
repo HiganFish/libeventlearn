@@ -50,27 +50,27 @@ extern "C" {
 #define ev_io_timeout	ev_.ev_io.ev_timeout
 
 /* used only by signals */
-// »Øµ÷º¯ÊıÖ´ĞĞ´ÎÊı
+// å›è°ƒå‡½æ•°æ‰§è¡Œæ¬¡æ•°
 #define ev_ncalls	ev_.ev_signal.ev_ncalls
 #define ev_pncalls	ev_.ev_signal.ev_pncalls
 
 #define ev_pri ev_evcallback.evcb_pri
 
-// ÊÂ¼ş±êÖ¾, ±ê¼ÇÊÂ¼ş´¦ÀíÆ÷µÄ×´Ì¬
+// äº‹ä»¶æ ‡å¿—, æ ‡è®°äº‹ä»¶å¤„ç†å™¨çš„çŠ¶æ€
 #define ev_flags ev_evcallback.evcb_flags
 
-// Ö¸¶¨event_baseÖ´ĞĞÊÂ¼ş´¦ÀíÆ÷µÄ»Øµ÷º¯ÊıµÄĞĞÎª
+// æŒ‡å®ševent_baseæ‰§è¡Œäº‹ä»¶å¤„ç†å™¨çš„å›è°ƒå‡½æ•°çš„è¡Œä¸º
 #define ev_closure ev_evcallback.evcb_closure
 #define ev_callback ev_evcallback.evcb_cb_union.evcb_callback
 #define ev_arg ev_evcallback.evcb_arg
 
-//ev_closurev²ÎÊı
+//ev_closurevå‚æ•°
 
-// Ä¬ÈÏĞĞÎª
+// é»˜è®¤è¡Œä¸º
 #define EV_CLOSURE_EVENT 0
-// Ö´ĞĞĞÅºÅÊÂ¼ş´¦ÀíÆ÷»Øµ÷º¯ÊıµÄÊ±ºò Ö´ĞĞev_ncalls´Î»Øµ÷º¯Êı
+// æ‰§è¡Œä¿¡å·äº‹ä»¶å¤„ç†å™¨å›è°ƒå‡½æ•°çš„æ—¶å€™ æ‰§è¡Œev_ncallsæ¬¡å›è°ƒå‡½æ•°
 #define EV_CLOSURE_EVENT_SIGNAL 1
-// Ö´ĞĞÍê»Øµ÷º¯Êıºó, ÔÙ´Î½«ÊÂ¼ş¼ÓÈë×¢²áÊÂ¼ş¶ÓÁĞÖĞ
+// æ‰§è¡Œå®Œå›è°ƒå‡½æ•°å, å†æ¬¡å°†äº‹ä»¶åŠ å…¥æ³¨å†Œäº‹ä»¶é˜Ÿåˆ—ä¸­
 #define EV_CLOSURE_EVENT_PERSIST 2
 /** A simple callback. Uses the evcb_selfcb callback. */
 #define EV_CLOSURE_CB_SELF 3
@@ -83,14 +83,14 @@ extern "C" {
 #define EV_CLOSURE_EVENT_FINALIZE_FREE 6
 
 
-// Îª¸ø¶¨µÄevent_baseÉùÃ÷ºó¶ËµÄ½á¹¹Ìå
+// ä¸ºç»™å®šçš„event_baseå£°æ˜åç«¯çš„ç»“æ„ä½“
 struct eventop {
-	// ºó¶ËIO¸´ÓÃ¼¼ÊõµÄÃû³Æ
+	// åç«¯IOå¤ç”¨æŠ€æœ¯çš„åç§°
 	const char *name;
 
-	// ³õÊ¼»¯ º¯ÊıĞèÒª³õÊ¼»¯ËùÓĞÒªÓÃµÄÊôĞÔ
-	// ·µ»ØµÄÖ¸Õë»á±»event_init´æ´¢ÔÚevent_base.evbase
-	// Ê§°Üºó·µ»ØNULL
+	// åˆå§‹åŒ– å‡½æ•°éœ€è¦åˆå§‹åŒ–æ‰€æœ‰è¦ç”¨çš„å±æ€§
+	// è¿”å›çš„æŒ‡é’ˆä¼šè¢«event_initå­˜å‚¨åœ¨event_base.evbase
+	// å¤±è´¥åè¿”å›NULL
 	void *(*init)(struct event_base *);
 	/** Enable reading/writing on a given fd or signal.  'events' will be
 	 * the events that we're trying to enable: one or more of EV_READ,
@@ -100,23 +100,23 @@ struct eventop {
 	 * fdinfo field below.  It will be set to 0 the first time the fd is
 	 * added.  The function should return 0 on success and -1 on error.
 	 */
-	// ×¢²áÊÂ¼ş
+	// æ³¨å†Œäº‹ä»¶
 	int (*add)(struct event_base *, evutil_socket_t fd, short old, short events, void *fdinfo);
 	/** As "add", except 'events' contains the events we mean to disable. */
-	// É¾³ıÊÂ¼ş
+	// åˆ é™¤äº‹ä»¶
 	int (*del)(struct event_base *, evutil_socket_t fd, short old, short events, void *fdinfo);
 	/** Function to implement the core of an event loop.  It must see which
 	    added events are ready, and cause event_active to be called for each
 	    active event (usually via event_io_active or such).  It should
 	    return 0 on success and -1 on error.
 	 */
-	// µÈ´ıÊÂ¼ş
+	// ç­‰å¾…äº‹ä»¶
 	int (*dispatch)(struct event_base *, struct timeval *);
-	// ÊÍ·ÅIO¸´ÓÃ»úÖÆÊ¹ÓÃµÄ×ÊÔ´
+	// é‡Šæ”¾IOå¤ç”¨æœºåˆ¶ä½¿ç”¨çš„èµ„æº
 	void (*dealloc)(struct event_base *);
-	// ±ê¼ÇforkºóÊÇ·ñĞèÒªÖØĞÂ³õÊ¼»¯event_baseµÄ±êÖ¾Î»
+	// æ ‡è®°forkåæ˜¯å¦éœ€è¦é‡æ–°åˆå§‹åŒ–event_baseçš„æ ‡å¿—ä½
 	int need_reinit;
-	// ÓÃÓÚÉè¶¨io¸´ÓÃ¼¼ÊõÖ§³ÖµÄÒ»Ğ©ÌØĞÔ
+	// ç”¨äºè®¾å®šioå¤ç”¨æŠ€æœ¯æ”¯æŒçš„ä¸€äº›ç‰¹æ€§
 	enum event_method_feature features;
 	/** Length of the extra information we should record for each fd that
 	    has one or more active events.  This information is recorded
@@ -134,8 +134,8 @@ struct eventop {
 #define EVMAP_USE_HT
 #endif
 
-// Èç¹û¶¨ÒåÁËEVMAP_USE_HT, Ôò½«event_io_map¶¨ÒåÎª¹şÏ£±í, ¹şÏ£±í¼ÇÂ¼event_map_entry¶ÔÏóºÍ
-// IOÊÂ¼ş¶ÓÁĞÖ®¼äµÄÓ³Éä¹ØÏµ, Êµ¼ÊÉÏ´æ´¢ÁËÎÄ¼şÃèÊö·ûºÍIOÊÂ¼ş´¦ÀíÆ÷Ö®Ç°µÄÓ³Éä¹ØÏµ
+// å¦‚æœå®šä¹‰äº†EVMAP_USE_HT, åˆ™å°†event_io_mapå®šä¹‰ä¸ºå“ˆå¸Œè¡¨, å“ˆå¸Œè¡¨è®°å½•event_map_entryå¯¹è±¡å’Œ
+// IOäº‹ä»¶é˜Ÿåˆ—ä¹‹é—´çš„æ˜ å°„å…³ç³», å®é™…ä¸Šå­˜å‚¨äº†æ–‡ä»¶æè¿°ç¬¦å’ŒIOäº‹ä»¶å¤„ç†å™¨ä¹‹å‰çš„æ˜ å°„å…³ç³»
 #ifdef EVMAP_USE_HT
 #define HT_NO_CACHE_HASH_VALUES
 #include "ht-internal.h"
@@ -146,12 +146,12 @@ HT_HEAD(event_io_map, event_map_entry);
 #endif
 
 
-// Ê¹ÓÃĞÅºÅ×÷ÎªÏÂ±êµÃµ½¶ÔÓ¦µÄevmap_io»òevmap_signal. Èç¹ûEVMAP_USE_HTÃ»ÓĞ±»ÉùÃ÷
-// Õâ¸ö½á¹¹ÌåÒ²Í¬Ñù±»ÓÃÎªevent_io_map Ê¹ÓÃfd×÷ÎªÏÂ±êµÃµ½event?
+// ä½¿ç”¨ä¿¡å·ä½œä¸ºä¸‹æ ‡å¾—åˆ°å¯¹åº”çš„evmap_ioæˆ–evmap_signal. å¦‚æœEVMAP_USE_HTæ²¡æœ‰è¢«å£°æ˜
+// è¿™ä¸ªç»“æ„ä½“ä¹ŸåŒæ ·è¢«ç”¨ä¸ºevent_io_map ä½¿ç”¨fdä½œä¸ºä¸‹æ ‡å¾—åˆ°event?
 struct event_signal_map {
-	// ´æ·Åevmap_io*»òevmap_signal*µÄÊı×é
+	// å­˜æ”¾evmap_io*æˆ–evmap_signal*çš„æ•°ç»„
 	void **entries;
-	// Êı×é´óĞ¡
+	// æ•°ç»„å¤§å°
 	int nentries;
 };
 
@@ -205,22 +205,22 @@ struct event_once {
 };
 
 struct event_base {
-	// ¼ÇÂ¼Ñ¡ÔñµÄI/O¸´ÓÃ»úÖÆ
+	// è®°å½•é€‰æ‹©çš„I/Oå¤ç”¨æœºåˆ¶
 	const struct eventop *evsel;
-	// Ö¸ÏòIO¸´ÓÃ»úÖÆÕæÕı´æ´¢µÄÊı¾İ
+	// æŒ‡å‘IOå¤ç”¨æœºåˆ¶çœŸæ­£å­˜å‚¨çš„æ•°æ®
 	void *evbase;
 
-	// ÊÂ¼ş±ä»»¶ÓÁĞ Èç¹ûÒ»¸öÎÄ¼şÃèÊö·ûÉÏ×¢²áµÄÊÂ¼ş±»¶à´ÎĞŞ¸Ä, Ôò¿ÉÒÔÊ¹ÓÃ»º³å±ÜÃâÖØ¸´µÄÏµÍ³µ÷ÓÃ
-	// ±ÈÈçepoll_ctl, ½öÄÜÓÃÓÚÊ±¼ä¸´ÔÓ¶ÈO(1)µÄIO¸´ÓÃ¼¼Êõ
+	// äº‹ä»¶å˜æ¢é˜Ÿåˆ— å¦‚æœä¸€ä¸ªæ–‡ä»¶æè¿°ç¬¦ä¸Šæ³¨å†Œçš„äº‹ä»¶è¢«å¤šæ¬¡ä¿®æ”¹, åˆ™å¯ä»¥ä½¿ç”¨ç¼“å†²é¿å…é‡å¤çš„ç³»ç»Ÿè°ƒç”¨
+	// æ¯”å¦‚epoll_ctl, ä»…èƒ½ç”¨äºæ—¶é—´å¤æ‚åº¦O(1)çš„IOå¤ç”¨æŠ€æœ¯
 	struct event_changelist changelist;
 
-	// ĞÅºÅµÄºó¶Ë´¦Àí»úÖÆ
+	// ä¿¡å·çš„åç«¯å¤„ç†æœºåˆ¶
 	const struct eventop *evsigsel;
-	// ĞÅºÅÊÂ¼ş´¦ÀíÆ÷Ê¹ÓÃµÄÊı¾İ½á¹¹, ÆäÖĞ·â×°ÁËsocketpair´´½¨µÄ¹ÜµÀ. ÓÃÓÚĞÅºÅ´¦Àíº¯ÊıºÍ
-	// ÊÂ¼ş¶àÂ··Ö·¢Æ÷Ö®¼äµÄÍ¨ĞÅ, Í³Ò»ÊÂ¼şÔ´µÄË¼Â·
+	// ä¿¡å·äº‹ä»¶å¤„ç†å™¨ä½¿ç”¨çš„æ•°æ®ç»“æ„, å…¶ä¸­å°è£…äº†socketpairåˆ›å»ºçš„ç®¡é“. ç”¨äºä¿¡å·å¤„ç†å‡½æ•°å’Œ
+	// äº‹ä»¶å¤šè·¯åˆ†å‘å™¨ä¹‹é—´çš„é€šä¿¡, ç»Ÿä¸€äº‹ä»¶æºçš„æ€è·¯
 	struct evsig_info sig;
 
-	// Ìí¼Óµ½event_baseµÄĞéÄâ(ËùÓĞ, ¼¤»î)ÊÂ¼şÊıÁ¿, ĞéÄâ(ËùÓĞ, ¼¤»î)ÊÂ¼ş×î´óÊıÁ¿
+	// æ·»åŠ åˆ°event_baseçš„è™šæ‹Ÿ(æ‰€æœ‰, æ¿€æ´»)äº‹ä»¶æ•°é‡, è™šæ‹Ÿ(æ‰€æœ‰, æ¿€æ´»)äº‹ä»¶æœ€å¤§æ•°é‡
 	int virtual_event_count;
 	int virtual_event_count_max;
 	int event_count;
@@ -228,17 +228,17 @@ struct event_base {
 	int event_count_active;
 	int event_count_active_max;
 
-	// ´¦ÀíÍêÊÂ¼şºó ÊÇ·ñÍË³öÑ­»·
+	// å¤„ç†å®Œäº‹ä»¶å æ˜¯å¦é€€å‡ºå¾ªç¯
 	int event_gotterm;
-	// ÊÇ·ñÁ¢¼´ÖÕÖ¹Ñ­»·
+	// æ˜¯å¦ç«‹å³ç»ˆæ­¢å¾ªç¯
 	int event_break;
-	// ÊÇ·ñÆô¶¯Ò»¸öĞÂµÄÊÂ¼şÑ­»·
+	// æ˜¯å¦å¯åŠ¨ä¸€ä¸ªæ–°çš„äº‹ä»¶å¾ªç¯
 	int event_continue;
 
-	// µ±Ç°ÕıÔÚ´¦ÀíµÄ»î¶¯ÊÂ¼ş¶ÓÁĞµÄÓÅÏÈ¼¶
+	// å½“å‰æ­£åœ¨å¤„ç†çš„æ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—çš„ä¼˜å…ˆçº§
 	int event_running_priority;
 
-	// ±ê¼ÇÊÂ¼şÑ­»·ÊÇ·ñÒÑ¾­Æô¶¯, ·ÀÖ¹ÖØÈë
+	// æ ‡è®°äº‹ä»¶å¾ªç¯æ˜¯å¦å·²ç»å¯åŠ¨, é˜²æ­¢é‡å…¥
 	int running_loop;
 
 	/** Set to the number of deferred_cbs we've made 'active' in the
@@ -247,47 +247,47 @@ struct event_base {
 	 * feature */
 	int n_deferreds_queued;
 
-	// »î¶¯ÊÂ¼ş¶ÓÁĞÊı×é. Ë÷ÒıÖµÔ½Ğ¡µÄ¶ÓÁĞÓÅÏÈ¼¶Ô½¸ß. ¸ßÓÅÏÈ¼¶µÄ»î¶¯ÊÂ¼ş¶ÓÁĞÖĞµÄÊÂ¼ş´¦ÀíÆ÷±»ÓÅÏÈ´¦Àí
+	// æ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—æ•°ç»„. ç´¢å¼•å€¼è¶Šå°çš„é˜Ÿåˆ—ä¼˜å…ˆçº§è¶Šé«˜. é«˜ä¼˜å…ˆçº§çš„æ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—ä¸­çš„äº‹ä»¶å¤„ç†å™¨è¢«ä¼˜å…ˆå¤„ç†
 	struct evcallback_list *activequeues;
-	// »î¶¯ÊÂ¼ş¶ÓÁĞÊı×éµÄ´óĞ¡ ËµÃ÷ÓĞnactivequeues¸ö²»Í¬ÓÅÏÈ¼¶µÄ»î¶¯ÊÂ¼ş¶ÓÁĞ
+	// æ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—æ•°ç»„çš„å¤§å° è¯´æ˜æœ‰nactivequeuesä¸ªä¸åŒä¼˜å…ˆçº§çš„æ´»åŠ¨äº‹ä»¶é˜Ÿåˆ—
 	int nactivequeues;
 	/** A list of event_callbacks that should become active the next time
 	 * we process events, but not this time. */
 	struct evcallback_list active_later_queue;
 
-	// ¹²Í¬³¬Ê±Âß¼­
+	// å…±åŒè¶…æ—¶é€»è¾‘
 
-	// ¹ÜÀíÍ¨ÓÃ¶¨Ê±Æ÷¶ÓÁĞ ÊµÌåÊıÁ¿ ×ÜÊı
+	// ç®¡ç†é€šç”¨å®šæ—¶å™¨é˜Ÿåˆ— å®ä½“æ•°é‡ æ€»æ•°
 	struct common_timeout_list **common_timeout_queues;
 	int n_common_timeouts;
 	int n_common_timeouts_allocated;
 
-	// ÎÄ¼şÃèÊö·ûºÍIOÊÂ¼şÖ®¼äµÄÓ³Éä¹ØÏµ±í
+	// æ–‡ä»¶æè¿°ç¬¦å’ŒIOäº‹ä»¶ä¹‹é—´çš„æ˜ å°„å…³ç³»è¡¨
 	struct event_io_map io;
-	// ĞÅºÅÖµºÍĞÅºÅÊÂ¼şÖ®¼äµÄÓ³Éä¹ØÏµ±í
+	// ä¿¡å·å€¼å’Œä¿¡å·äº‹ä»¶ä¹‹é—´çš„æ˜ å°„å…³ç³»è¡¨
 	struct event_signal_map sigmap;
-	// Ê±¼ä¶Ñ
+	// æ—¶é—´å †
 	struct min_heap timeheap;
 
-	// ¹ÜÀíÏµÍ³Ê±¼äµÄ³ÉÔ±
+	// ç®¡ç†ç³»ç»Ÿæ—¶é—´çš„æˆå‘˜
 	struct timeval tv_cache;
 	struct evutil_monotonic_timer monotonic_timer;
 	struct timeval tv_clock_diff;
 	time_t last_updated_clock_diff;
 
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
-	// ¶àÏß³ÌÖ§³Ö
+	// å¤šçº¿ç¨‹æ”¯æŒ
 	
-	// µ±Ç°ÔËĞĞ¸Ãevent_baseµÄÊÂ¼şÑ­»·µÄÏß³Ì
+	// å½“å‰è¿è¡Œè¯¥event_baseçš„äº‹ä»¶å¾ªç¯çš„çº¿ç¨‹
 	unsigned long th_owner_id;
-	// ¶ÀÕ¼Ëø
+	// ç‹¬å é”
 	void *th_base_lock;
-	// µ±Ç°ÊÂ¼şÑ­»·ÕıÔÚÖ´ĞĞÄÄ¸öÊÂ¼ş´¦ÀíÆ÷µÄ»Øµ÷º¯Êı
+	// å½“å‰äº‹ä»¶å¾ªç¯æ­£åœ¨æ‰§è¡Œå“ªä¸ªäº‹ä»¶å¤„ç†å™¨çš„å›è°ƒå‡½æ•°
 	void *current_event_cond;
-	// µÈ´ıµÄÏß³ÌÊı
+	// ç­‰å¾…çš„çº¿ç¨‹æ•°
 	int current_event_waiters;
 #endif
-	// ÕıÔÚ´¦ÀíµÄÊÂ¼ş´¦ÀíÆ÷µÄ»Øµ÷º¯Êı
+	// æ­£åœ¨å¤„ç†çš„äº‹ä»¶å¤„ç†å™¨çš„å›è°ƒå‡½æ•°
 	struct event_callback *current_event;
 
 #ifdef _WIN32
