@@ -147,7 +147,7 @@ HT_HEAD(event_io_map, event_map_entry);
 
 
 // 使用信号作为下标得到对应的evmap_io或evmap_signal. 如果EVMAP_USE_HT没有被声明
-// 这个结构体也同样被用为event_io_map 使用fd作为下标得到event?
+// 这个结构体也同样被用为event_io_map 使用fd作为下标得到event
 struct event_signal_map {
 	// 存放evmap_io*或evmap_signal*的数组
 	void **entries;

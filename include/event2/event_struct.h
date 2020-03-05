@@ -148,6 +148,8 @@ struct event {
 		/* used for io events */
 		struct {
 			// 通过这个成员 将具有相同文件描述符的IO事件处理器串联起来
+			// 至于为什么要串联起来 是因为如果在这个fd上注册新的写事件或者读事件
+			// 当新的epollwait返回的时候 只有fd 和对应的event 根据fd和event查找新的写事件或者读事件
 			LIST_ENTRY (event) ev_io_next;
 			struct timeval ev_timeout;
 		} ev_io;

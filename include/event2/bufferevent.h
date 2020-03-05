@@ -188,6 +188,8 @@ enum bufferevent_options {
   @return a pointer to a newly allocated bufferevent struct, or NULL if an
 	  error occurred
   @see bufferevent_free()
+
+  // 初始化 并设定默认的回调函数 通过默认的回调函数调用用户设定的回调函数
   */
 EVENT2_EXPORT_SYMBOL
 struct bufferevent *bufferevent_socket_new(struct event_base *base, evutil_socket_t fd, int options);

@@ -258,3 +258,32 @@ struct event_base {
 ```
 
 事件循环, libevent的动力, 即事件循环
+
+这次读了一下helloworld的 这一部分代码
+```c++
+static void
+listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
+    struct sockaddr *sa, int socklen, void *user_data)
+{
+	struct event_base *base = user_data;
+	struct bufferevent *bev;
+
+	bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+	if (!bev) {
+		fprintf(stderr, "Error constructing bufferevent!");
+		event_base_loopbreak(base);
+		return;
+	}
+	// 设置新创建的bufferevent的 读写回调函数 启动写事件 禁用读事件
+	bufferevent_setcb(bev, NULL, conn_writecb, conn_eventcb, NULL);
+	bufferevent_enable(bev, EV_WRITE);
+	bufferevent_disable(bev, EV_READ);
+
+	bufferevent_write(bev, MESSAGE, strlen(MESSAGE));
+}
+```
+bufferevent_socket_new 创建了读和写event 设置了真实的回调函数`bufferevent_writecb`等 然后
+bufferevent_enable是真正的事件注册函数， 将上面生成的event注册进入eventbase
+`EV_WRITE`对应的epoll事件是`EPOLLOUT`
+`bufferevent_write`将要写出的数据放入到缓冲区中。 一旦epollwait返回了 就去调用`bufferevent_writecb`将缓冲区
+的内容写出， 然后同时调用用户设置的回调函数

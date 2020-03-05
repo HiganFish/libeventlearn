@@ -495,6 +495,7 @@ bufferevent_enable(struct bufferevent *bufev, short event)
 
 	bufev->enabled |= event;
 
+	// 添加事件到事件队列
 	if (impl_events && bufev->be_ops->enable(bufev, impl_events) < 0)
 		r = -1;
 	if (r)

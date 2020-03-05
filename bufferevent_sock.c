@@ -341,6 +341,7 @@ bufferevent_writecb(evutil_socket_t fd, short event, void *arg)
 	bufferevent_decref_and_unlock_(bufev);
 }
 
+
 struct bufferevent *
 bufferevent_socket_new(struct event_base *base, evutil_socket_t fd,
     int options)
@@ -565,7 +566,7 @@ bufferevent_new(evutil_socket_t fd,
 	return bufev;
 }
 
-
+// 启动socket事件
 static int
 be_socket_enable(struct bufferevent *bufev, short event)
 {
