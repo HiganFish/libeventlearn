@@ -287,3 +287,19 @@ bufferevent_enable是真正的事件注册函数， 将上面生成的event注�
 `EV_WRITE`对应的epoll事件是`EPOLLOUT`
 `bufferevent_write`将要写出的数据放入到缓冲区中。 一旦epollwait返回了 就去调用`bufferevent_writecb`将缓冲区
 的内容写出， 然后同时调用用户设置的回调函数
+
+2020年3月7日20:26:02
+这次又读了下 系统是怎么区分不同事件来调用回调函数的, 结果返现框架将系统的事件类型对应成自己的事件类型
+```c++
+if (what & (EPOLLHUP|EPOLLERR)) {
+	ev = EV_READ | EV_WRITE;
+} else {
+	if (what & EPOLLIN)
+		ev |= EV_READ;
+	if (what & EPOLLOUT)
+		ev |= EV_WRITE;
+	if (what & EPOLLRDHUP)
+		ev |= EV_CLOSED;
+}
+```
+然后传入`evmap_io_active_`函数, 进而将ev保存到`ev_res`中然后直接作为参数 传给了回调函数

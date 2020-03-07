@@ -1625,7 +1625,7 @@ event_persist_closure(struct event_base *base, struct event *ev)
 	// Release the lock
  	EVBASE_RELEASE_LOCK(base, th_base_lock);
 
-	// Execute the callback
+	// Execute the callback 简单的将evcb_res 也就是 EV_READ EV_CLOSE直接传入了
         (evcb_callback)(evcb_fd, evcb_res, evcb_arg);
 }
 
@@ -1687,6 +1687,7 @@ event_process_active_single_queue(struct event_base *base,
 			break;
 		case EV_CLOSURE_EVENT_PERSIST:
 			EVUTIL_ASSERT(ev != NULL);
+			// 执行新连接 读
 			event_persist_closure(base, ev);
 			break;
 		case EV_CLOSURE_EVENT: {
@@ -2976,6 +2977,7 @@ event_active_nolock_(struct event *ev, int res, short ncalls)
 		ev->ev_res |= res;
 		break;
 	case 0:
+	    // 将事件类型保存
 		ev->ev_res = res;
 		break;
 	}

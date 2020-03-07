@@ -436,6 +436,7 @@ evmap_io_active_(struct event_base *base, evutil_socket_t fd, short events)
 		return;
 	LIST_FOREACH(ev, &ctx->events, ev_io_next) {
 		if (ev->ev_events & events)
+		    // 这里将event运算后传入 应该是直接传入的ev_events是0
 			event_active_nolock_(ev, ev->ev_events & events, 1);
 	}
 }
